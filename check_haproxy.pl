@@ -1,6 +1,7 @@
 #!/usr/bin/perl -w
 #
 # Copyright (c) 2010 Stéphane Urbanovski <stephane.urbanovski@ac-nancy-metz.fr>
+# Copyright (c) 2019 Claudio Kuenzler <ck@claudiokuenzler.com>
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -42,7 +43,7 @@ use Data::Dumper;
 
 
 my $PROGNAME = basename($0);
-'$Revision: 1.0 $' =~ /^.*(\d+\.\d+) \$$/;  # Use The Revision from RCS/CVS/SVN
+'$Revision: 1.1 $' =~ /^.*(\d+\.\d+) \$$/;  # Use The Revision from RCS/CVS/SVN
 my $VERSION = $1;
 
 my $DEBUG = 0;
@@ -56,7 +57,7 @@ textdomain('nagios-plugins-perl');
 my $np = Nagios::Plugin->new(
 	version => $VERSION,
 	blurb => _gt('Plugin to check HAProxy stats url'),
-	usage => "Usage: %s [ -v|--verbose ]  -u <url> [-t <timeout>] [-U <username>] [-P <password>] [ -c|--critical=<threshold> ] [ -w|--warning=<threshold> ] [ -b|--critical-backends=<comma separated list>",
+	usage => "Usage: %s [ -v|--verbose ]  -u <url> [-t <timeout>] [-U <username>] [-P <password>] [ -c|--critical=<threshold> ] [ -w|--warning=<threshold> ] [ -b|--critical-backends=<comma separated list> ] [ -i|--ignore-backends=<comma separated list> ]",
 	timeout => $TIMEOUT+1
 );
 $np->add_arg (
@@ -96,6 +97,11 @@ $np->add_arg (
 	help => _gt('List of critical backend, if set other backend are only warning backend'),
 	required => 0,
 );
+$np->add_arg (
+	spec => 'ignore-backends|i=s',
+	help => _gt('Comma-separated list of backends to ignore'),
+	required => 0,
+);
 
 
 $np->getopts;
@@ -108,6 +114,11 @@ my $crit_backends = $np->opts->get('critical-backends');
 my @crit_backends_list;
 if ( defined ( $crit_backends ) ) {
 	@crit_backends_list = split(',',$crit_backends);
+}
+my $ignore_backends = $np->opts->get('ignore-backends');
+my @ignore_backends_list;
+if ( defined ( $ignore_backends ) ) {
+	@ignore_backends_list = split(',',$ignore_backends);
 }
 
 # Thresholds :
@@ -236,10 +247,16 @@ if ( $status == OK && $stats ne "") {
 			$stats{$values[0]}{$values[1]}{$fields[$x]} = $values[$x];
 		}
 	}
-#	print Dumper(\%stats);
+	#print Dumper(\%stats);
 	my %stats2 = ();
 	my $okMsg = '';
 	foreach my $pxname ( keys(%stats) ) {
+		if ( defined($ignore_backends) ) {
+			if ( grep(/^$pxname$/,@ignore_backends_list) ) {
+				logD( sprintf(_gt("Skipping %s because it is defined in ignore list."),$pxname) );
+				next;
+			}
+		}
 		$stats2{$pxname} = {
 			'act' => 0,
 			'acttot' => 0,
@@ -247,6 +264,8 @@ if ( $status == OK && $stats ne "") {
 			'bcktot' => 0,
 			'scur' => 0,
 			'slim' => 0,
+			'bin' => 0,
+			'bout' => 0,
 			};
 		foreach my $svname ( keys(%{$stats{$pxname}}) ) {
 			if ( $stats{$pxname}{$svname}{'type'} eq '2' ) {
@@ -277,8 +296,10 @@ if ( $status == OK && $stats ne "") {
 				$stats2{$pxname}{'scur'} += $stats{$pxname}{$svname}{'scur'};
 				logD( "Current sessions : ".$stats{$pxname}{$svname}{'scur'} );
 
-			} elsif ( $stats{$pxname}{$svname}{'type'} eq '0' ) {
+			} elsif ( $stats{$pxname}{$svname}{'type'} lt '2' ) {
 				$stats2{$pxname}{'slim'} = $stats{$pxname}{$svname}{'slim'};
+				$stats2{$pxname}{'bin'} = $stats{$pxname}{$svname}{'bin'};
+				$stats2{$pxname}{'bout'} = $stats{$pxname}{$svname}{'bout'};
 			}
 		}
 		if ( $stats2{$pxname}{'acttot'} > 0 ) {
@@ -291,13 +312,27 @@ if ( $status == OK && $stats ne "") {
 				'label' => 'sess_'.$pxname,
 				'value' => $stats2{$pxname}{'scur'},
 				'min' => 0,
-				'uom' => 'sessions',
+				'uom' => '',
 				'max' => $stats2{$pxname}{'slim'},
+			);
+			$np->add_perfdata(
+				'label' => 'bytes_in_'.$pxname,
+				'value' => $stats2{$pxname}{'bin'},
+				'min' => '0',
+				'uom' => 'B',
+				'max' => '',
+			);
+			$np->add_perfdata(
+				'label' => 'bytes_out_'.$pxname,
+				'value' => $stats2{$pxname}{'bout'},
+				'min' => '0',
+				'uom' => 'B',
+				'max' => '',
 			);
 		}
 	}
 
-#	print Dumper(\%stats2);
+	#print Dumper(\%stats2);
 	($status, $message) = $np->check_messages('join' => ' ');
 
 	if ( $status == OK ) {
@@ -370,7 +405,7 @@ In F<services.cfg> you just have to add something like :
 =head1 AUTHOR
 
 Stéphane Urbanovski <stephane.urbanovski@ac-nancy-metz.fr>
-
 David BERARD <david@nfrance.com>
+Claudio Kuenzler <ck@claudiokuenzler.com>
 
 =cut
