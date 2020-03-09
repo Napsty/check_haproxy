@@ -1,5 +1,8 @@
 # check_haproxy
-A fork from Stéphane Urbanovski's HAProxy monitoring plugin. Written in Perl.
+This is a forked repository. The original check_haproxy monitoring plugin was written by Stéphane Urbanovski. 
+Use Stéphane's repository for future development: https://github.com/men-crt-sup/nagios-plugins
+
+For now I will keep this forked repo, it might disappear in the future.
 
 ## Changes
 
