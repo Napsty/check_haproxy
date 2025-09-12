@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 #
 # Copyright (c) 2010 Stéphane Urbanovski <stephane.urbanovski@ac-nancy-metz.fr>
-# Copyright (c) 2019 Claudio Kuenzler <ck@claudiokuenzler.com>
+# Copyright (c) 2019,2025 Claudio Kuenzler <ck@claudiokuenzler.com>
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -64,7 +64,7 @@ use Data::Dumper;
 
 
 my $PROGNAME = basename($0);
-'$Revision: 1.1 $' =~ /^.*(\d+\.\d+) \$$/;  # Use The Revision from RCS/CVS/SVN
+'$Revision: 1.2 $' =~ /^.*(\d+\.\d+) \$$/;  # Use The Revision from RCS/CVS/SVN
 my $VERSION = $1;
 
 my $DEBUG = 0;
@@ -181,10 +181,10 @@ if ( $url =~ /^http/ ) {
 
 	if ( $http_response->is_error() ) {
 		my $err = $http_response->code." ".status_message($http_response->code)." (".$http_response->message.")";
-		$np->add_message(CRITICAL, _gt("HTTP error: ").$err );
+		$np->add_message("CRITICAL", _gt("HTTP error: ").$err );
 	} elsif ( ! $http_response->is_success() ) {
 		my $err = $http_response->code." ".status_message($http_response->code)." (".$http_response->message.")";
-		$np->add_message(CRITICAL, _gt("Internal error: ").$err );
+		$np->add_message("CRITICAL", _gt("Internal error: ").$err );
 	}
 	if ( $http_response->is_success() ) {
 		$stats = $http_response->content;
@@ -197,7 +197,7 @@ if ( $url =~ /^http/ ) {
 		Timeout => 1);
 	if ( !$sock ) {
 		my $err = "Can't connect to unix socket";
-		$np->add_message(CRITICAL, _gt("Internal error: ").$err );
+		$np->add_message("CRITICAL", _gt("Internal error: ").$err );
 	}else{
 		print $sock "show stat\n";
 		while(my $line = <$sock>){
@@ -206,7 +206,7 @@ if ( $url =~ /^http/ ) {
 	}
 }else {
 	my $err = "Can't detect socket type";
-	$np->add_message(CRITICAL, _gt("Internal error: ").$err );
+	$np->add_message("CRITICAL", _gt("Internal error: ").$err );
 }
 $timer = time()-$timer;
 
@@ -251,7 +251,7 @@ if ( $status == OK && $stats ne "") {
 		$rows[0] =~ s/#\ //;
 		@fields = split(/\,/,$rows[0]);
 	} else {
-		$np->nagios_exit(UNKNOWN, _gt("Can't find csv header !") );
+		$np->nagios_exit("UNKNOWN", _gt("Can't find csv header !") );
 	}
 
 	my %stats = ();
@@ -298,12 +298,12 @@ if ( $status == OK && $stats ne "") {
 				} elsif ( $stats{$pxname}{$svname}{'status'} eq 'DOWN' ) {
 					if ( defined($crit_backends) ) {
 						if ( grep(/^$pxname$/,@crit_backends_list) ) {
-							$np->add_message(CRITICAL, sprintf(_gt("%s '%s' is DOWN on '%s' proxy !"),$activeDescr,$svname,$pxname) );
+							$np->add_message("CRITICAL", sprintf(_gt("%s '%s' is DOWN on '%s' proxy !"),$activeDescr,$svname,$pxname) );
 						}else{
-							$np->add_message(WARNING, sprintf(_gt("%s '%s' is DOWN on '%s' proxy !"),$activeDescr,$svname,$pxname) );
+							$np->add_message("WARNING", sprintf(_gt("%s '%s' is DOWN on '%s' proxy !"),$activeDescr,$svname,$pxname) );
 						}
 					}else{
-						$np->add_message(CRITICAL, sprintf(_gt("%s '%s' is DOWN on '%s' proxy !"),$activeDescr,$svname,$pxname) );
+						$np->add_message("CRITICAL", sprintf(_gt("%s '%s' is DOWN on '%s' proxy !"),$activeDescr,$svname,$pxname) );
 					}
 				}
 				if ( $stats{$pxname}{$svname}{'act'} eq '1' ) {

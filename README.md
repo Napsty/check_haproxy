@@ -5,6 +5,8 @@ Use Stéphane's repository for future development: https://github.com/men-crt-su
 For now I will keep this forked repo, it might disappear in the future.
 
 ## Changes
+### 1.2
+- Bugfix Perl errors `Bareword "X" not allowed while "strict subs" in use at`. 
 
 ### 1.1
 - Add new option `-i` or `--ignore-backends` to exclude certain backend(s) from the check. 
