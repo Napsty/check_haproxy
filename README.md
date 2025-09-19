@@ -6,7 +6,9 @@ For now I will keep this forked repo, it might disappear in the future.
 
 ## Changes
 ### 1.2
-- Bugfix Perl errors `Bareword "X" not allowed while "strict subs" in use at`. 
+- Bugfix Perl errors `Bareword "X" not allowed while "strict subs" in use at`.
+
+See https://www.claudiokuenzler.com/blog/1504/fixing-perl-strict-errors-haproxy-monitoring-plugin
 
 ### 1.1
 - Add new option `-i` or `--ignore-backends` to exclude certain backend(s) from the check. 
